@@ -1,12 +1,10 @@
-# =====================================================
-# STABILITY FIXES (MUST BE AT TOP)
-# =====================================================
+
+# STABILITY FIXES 
 import os
 os.environ["TORCH_DISABLE_DYNAMO"] = "1"
 
-# =====================================================
+
 # IMPORTS
-# =====================================================
 import streamlit as st
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
@@ -15,9 +13,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import nltk
 
-# =====================================================
 # NLTK SAFE SETUP (NO CRASHES)
-# =====================================================
 def setup_nltk():
     try:
         nltk.data.find("tokenizers/punkt")
@@ -33,9 +29,7 @@ setup_nltk()
 
 from nltk.tokenize import sent_tokenize
 
-# =====================================================
 # LOAD MODEL & TOKENIZER (CPU SAFE)
-# =====================================================
 MODEL_NAME = "facebook/bart-large-cnn"
 
 @st.cache_resource(show_spinner=True)
@@ -54,9 +48,7 @@ def load_model():
 
 tokenizer, model = load_model()
 
-# =====================================================
 # STREAMLIT UI
-# =====================================================
 st.set_page_config(
     page_title="Email Summarization System",
     layout="wide"
@@ -72,9 +64,7 @@ sentence-importance visualization.
 """
 )
 
-# =====================================================
 # INPUT
-# =====================================================
 email_text = st.text_area(
     "Paste a long email here:",
     height=300
@@ -82,9 +72,7 @@ email_text = st.text_area(
 
 if st.button("Generate Summary") and email_text.strip():
 
-    # =================================================
     # TOKENIZATION
-    # =================================================
     inputs = tokenizer(
         email_text,
         return_tensors="pt",
@@ -95,9 +83,7 @@ if st.button("Generate Summary") and email_text.strip():
 
     token_count = inputs["input_ids"].shape[1]
 
-    # =================================================
     # ABSTRACTIVE SUMMARY (TRANSFORMER)
-    # =================================================
     with torch.no_grad():
         summary_ids = model.generate(
             inputs["input_ids"],
@@ -113,9 +99,7 @@ if st.button("Generate Summary") and email_text.strip():
         skip_special_tokens=True
     )
 
-    # =================================================
     # EXTRACTIVE SUMMARY (TF-IDF)
-    # =================================================
     sentences = sent_tokenize(email_text)
 
     vectorizer = TfidfVectorizer(stop_words="english")
@@ -127,9 +111,7 @@ if st.button("Generate Summary") and email_text.strip():
 
     extractive_summary = " ".join([sentences[i] for i in top_indices])
 
-    # =================================================
     # ATTENTION APPROXIMATION (SIMILARITY BASED)
-    # =================================================
     all_text = sentences + [summary_text]
     tfidf_vectors = vectorizer.fit_transform(all_text)
 
@@ -143,9 +125,7 @@ if st.button("Generate Summary") and email_text.strip():
 
     important_indices = np.argsort(similarity_scores)[-5:]
 
-    # =================================================
     # OUTPUT
-    # =================================================
     col1, col2 = st.columns(2)
 
     with col1:
